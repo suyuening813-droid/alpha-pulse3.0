@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlphaPulse · AI量化驾驶舱</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg: #050816;
+  --bg2: #0b1120;
+  --accent: #00ff9d;
+  --red: #ff4d6a;
+  --blue: #00a3ff;
+  --text: #e5e7eb;
+  --text2: #94a3b8;
+  --border: rgba(255,255,255,0.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:"Microsoft YaHei",sans-serif; }
+button { cursor:pointer; }
+
+/* 登录 */
+#login-screen {
+  position:fixed; inset:0; background:var(--bg);
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+}
+.login-box {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:12px; padding:2rem; width:320px;
+}
+.login-box input {
+  width:100%; background:#111827; border:1px solid var(--border);
+  border-radius:8px; padding:0.75rem; color:#fff; margin:1rem 0;
+}
+.login-btn {
+  width:100%; background:var(--accent); color:#000;
+  border:none; border-radius:8px; padding:0.75rem; font-weight:bold;
+}
+
+/* 主界面 */
+#app { display:none; height:100vh; }
+.topbar {
+  height:50px; background:var(--bg2); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 1rem;
+}
+.top-logo { color:var(--accent); font-weight:bold; font-size:18px; }
+.market { margin-left:2rem; font-size:12px; color:var(--text2); }
+.body { display:flex; height:calc(100vh - 50px); }
+
+/* 左侧导航 */
+.sidebar {
+  width:200px; background:var(--bg2); border-right:1px solid var(--border);
+  padding:1rem;
+}
+.nav-item {
+  padding:0.75rem; border-radius:8px; margin-bottom:0.5rem;
+  color:var(--text2); cursor:pointer;
+}
+.nav-item.active { background:rgba(0,255,157,0.1); color:var(--accent); }
+
+/* 中间内容 */
+.main { flex:1; padding:1rem; overflow:auto; }
+.card {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:12px; padding:1rem; margin-bottom:1rem;
+}
+.strategy-card {
+  border:1px solid var(--accent); background:rgba(0,255,157,0.05);
+}
+.btn {
+  background:#111827; color:var(--text); border:1px solid var(--border);
+  border-radius:6px; padding:0.5rem 1rem; margin-right:0.5rem;
+}
+.btn-primary { background:var(--accent); color:#000; border:none; }
+
+/* 右侧面板 */
+.right {
+  width:320px; background:var(--bg2); border-left:1px solid var(--border);
+  padding:1rem;
+}
+
+/* 弹窗 */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none;
+  align-items:center; justify-content:center;
+}
+.modal {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:12px; padding:1.5rem; width:420px;
+}
+
+/* Toast */
+.toast {
+  position:fixed; bottom:20px; right:20px; background:var(--accent);
+  color:#000; padding:1rem; border-radius:8px; display:none;
+}
+</style>
+</head>
+<body>
+
+<!-- 登录 -->
+<div id="login-screen">
+  <div class="login-box">
+    <h2>输入昵称进入驾驶舱</h2>
+    <input id="nick" placeholder="你的昵称">
+    <button class="login-btn" onclick="login()">进入 AlphaPulse</button>
+  </div>
+</div>
+
+<!-- 主界面 -->
+<div id="app">
+  <div class="topbar">
+    <div class="top-logo">αPULSE</div>
+    <div class="market">
+      上证：<span id="sz">--</span>
+      深成：<span id="sc">--</span>
+    </div>
+  </div>
+  <div class="body">
+    <div class="sidebar">
+      <div class="nav-item active" onclick="switchPage('strategy')">🎯 策略</div>
+      <div class="nav-item" onclick="switchPage('portfolio')">💼 持仓</div>
+      <div class="nav-item" onclick="switchPage('news')">⚡ 新闻</div>
+    </div>
+
+    <!-- 策略页 -->
+    <div class="main" id="page-strategy">
+      <div class="card strategy-card">
+        <div style="color:var(--accent); font-weight:bold;">今日推荐：大普微 688585</div>
+        <div style="margin:0.5rem 0;">买点：42.80 | 止损：39.50 | 止盈：58.00</div>
+        <div style="font-size:12px; color:var(--text2);">逻辑：算力订单暴增，估值低位</div>
+        <div style="margin-top:1rem;">
+          <button class="btn btn-primary" onclick="addMonitor()">加入监控</button>
+          <button class="btn" onclick="loadMore()">更多推荐</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 持仓页 -->
+    <div class="main" id="page-portfolio" style="display:none;">
+      <div class="card">
+        <h3>上传持仓截图</h3>
+        <input type="file" id="img" accept="image/*" onchange="uploadImg()">
+        <div id="holdings"></div>
+      </div>
+    </div>
+
+    <!-- 新闻页 -->
+    <div class="main" id="page-news" style="display:none;">
+      <div class="card" id="news-list"></div>
+    </div>
+
+    <!-- 右侧K线 -->
+    <div class="right">
+      <div style="font-size:12px; color:var(--text2); margin-bottom:1rem;">K线</div>
+      <iframe id="kline" width="100%" height="300" frameborder="0"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- 弹窗 -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>设置监控</h3>
+    <input id="m-name" placeholder="股票名称">
+    <input id="m-price" placeholder="价格">
+    <button class="btn btn-primary" onclick="saveMonitor()">保存</button>
+    <button class="btn" onclick="closeModal()">取消</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ 1. 初始化 Supabase（你等下填自己的） ============
+const SUPABASE_URL = "";
+const SUPABASE_KEY = "";
+const { createClient } = supabase;
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let user = "";
+
+// ============ 2. 登录 ============
+function login() {
+  user = document.getElementById("nick").value.trim();
+  if (!user) return alert("输入昵称");
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "flex";
+  showToast("欢迎，" + user);
+  loadMarket();
+}
+
+// ============ 3. 切换页面 ============
+function switchPage(p) {
+  ["strategy","portfolio","news"].forEach(x=>{
+    document.getElementById("page-"+x).style.display = "none";
+  });
+  document.getElementById("page-"+p).style.display = "block";
+}
+
+// ============ 4. 模拟行情（后面对接真实） ============
+function loadMarket() {
+  fetch("https://api.example.com/market")
+    .then(r=>r.json())
+    .then(d=>{
+      document.getElementById("sz").innerText = d.sz;
+      document.getElementById("sc").innerText = d.sc;
+    })
+    .catch(()=>{
+      document.getElementById("sz").innerText = "3420.50";
+      document.getElementById("sc").innerText = "10900.20";
+    });
+}
+
+// ============ 5. 加入监控 ============
+function addMonitor() {
+  document.getElementById("modal").style.display = "flex";
+  document.getElementById("m-name").value = "大普微";
+  document.getElementById("m-price").value = "42.80";
+}
+function closeModal() {
+  document.getElementById("modal").style.display = "none";
+}
+async function saveMonitor() {
+  const name = document.getElementById("m-name").value;
+  const price = document.getElementById("m-price").value;
+  await supabase.from("monitors").insert([{user,name,price}]);
+  closeModal();
+  showToast("监控已添加");
+}
+
+// ============ 6. 加载更多推荐 ============
+function loadMore() {
+  showToast("加载中...");
+  setTimeout(()=>{
+    const html = `
+    <div class="card">
+      <div>华虹半导体 688347</div>
+      <div>买点：58.20 | 止损：54.00 | 止盈：72.00</div>
+    </div>
+    `;
+    document.getElementById("page-strategy").innerHTML += html;
+    showToast("已加载新推荐");
+  }, 800);
+}
+
+// ============ 7. 上传截图（占位，后面对接AI） ============
+function uploadImg() {
+  showToast("AI识别中...");
+  setTimeout(()=>{
+    document.getElementById("holdings").innerHTML = `
+      <div>识别成功：大普微 688585 成本36.20</div>
+    `;
+    showToast("识别完成");
+  }, 1200);
+}
+
+// ============ 8. Toast提示 ============
+function showToast(text) {
+  const t = document.getElementById("toast");
+  t.innerText = text;
+  t.style.display = "block";
+  setTimeout(()=>t.style.display = "none", 2500);
+}
+</script>
+
+</body>
+</html>
