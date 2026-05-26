@@ -3,269 +3,1268 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AlphaPulse · AI量化驾驶舱</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>AlphaPulse v2 · AI量化驾驶舱</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 :root {
-  --bg: #050816;
-  --bg2: #0b1120;
-  --accent: #00ff9d;
-  --red: #ff4d6a;
-  --blue: #00a3ff;
-  --text: #e5e7eb;
-  --text2: #94a3b8;
-  --border: rgba(255,255,255,0.08);
+  --bg:#070a0e; --bg2:#0d1117; --bg3:#141b24; --bg4:#1c2634;
+  --b1:rgba(255,255,255,0.05); --b2:rgba(255,255,255,0.1); --b3:rgba(255,255,255,0.18);
+  --tx:#dde4f0; --tx2:#8b95a8; --tx3:#404a5c;
+  --g:#00e5a0; --g2:#00b87d; --r:#ff3d5a; --r2:#cc2040;
+  --bl:#3d8bff; --am:#ffaa00; --pu:#9d7dfa; --tl:#00d4c8;
+  --mono:'Space Mono',monospace; --body:'Noto Sans SC',sans-serif;
 }
-* { margin:0; padding:0; box-sizing:border-box; }
-body { background:var(--bg); color:var(--text); font-family:"Microsoft YaHei",sans-serif; }
-button { cursor:pointer; }
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--tx);font-family:var(--body);font-size:13px;line-height:1.6;}
 
-/* 登录 */
-#login-screen {
-  position:fixed; inset:0; background:var(--bg);
-  display:flex; align-items:center; justify-content:center; flex-direction:column;
-}
-.login-box {
-  background:var(--bg2); border:1px solid var(--border);
-  border-radius:12px; padding:2rem; width:320px;
-}
-.login-box input {
-  width:100%; background:#111827; border:1px solid var(--border);
-  border-radius:8px; padding:0.75rem; color:#fff; margin:1rem 0;
-}
-.login-btn {
-  width:100%; background:var(--accent); color:#000;
-  border:none; border-radius:8px; padding:0.75rem; font-weight:bold;
-}
+/* ===== SCANLINE EFFECT ===== */
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);pointer-events:none;z-index:9999;}
 
-/* 主界面 */
-#app { display:none; height:100vh; }
-.topbar {
-  height:50px; background:var(--bg2); border-bottom:1px solid var(--border);
-  display:flex; align-items:center; padding:0 1rem;
-}
-.top-logo { color:var(--accent); font-weight:bold; font-size:18px; }
-.market { margin-left:2rem; font-size:12px; color:var(--text2); }
-.body { display:flex; height:calc(100vh - 50px); }
+/* ===== LOGIN ===== */
+#login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:2.5rem;}
+.login-halo{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(0,229,160,0.06) 0%,transparent 70%);pointer-events:none;}
+.login-logo{font-family:var(--mono);font-size:2.8rem;color:var(--g);letter-spacing:-3px;position:relative;}
+.login-logo::after{content:'PULSE';font-size:0.9rem;color:var(--tx3);letter-spacing:6px;display:block;text-align:center;margin-top:-8px;font-family:var(--body);}
+.login-sub{font-size:11px;color:var(--tx3);letter-spacing:3px;text-align:center;text-transform:uppercase;}
+.login-card{background:var(--bg3);border:1px solid var(--b2);border-radius:16px;padding:2rem;width:360px;position:relative;overflow:hidden;}
+.login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--g),transparent);}
+.api-notice{background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.2);border-radius:8px;padding:0.75rem;font-size:11px;color:var(--am);margin-bottom:1.25rem;line-height:1.6;}
+.api-notice a{color:var(--bl);text-decoration:none;}
+.field-label{font-size:10px;color:var(--tx3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:0.4rem;}
+.field-input{width:100%;background:var(--bg4);border:1px solid var(--b2);border-radius:8px;padding:0.7rem 1rem;color:var(--tx);font-family:var(--body);font-size:13px;outline:none;transition:border-color .2s;margin-bottom:1rem;}
+.field-input:focus{border-color:var(--g);}
+.field-input::placeholder{color:var(--tx3);}
+.login-btn{width:100%;background:var(--g);color:#000;border:none;border-radius:8px;padding:0.85rem;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--body);letter-spacing:1px;transition:all .2s;position:relative;overflow:hidden;}
+.login-btn:hover{background:var(--g2);transform:translateY(-1px);}
+.login-btn:active{transform:translateY(0);}
 
-/* 左侧导航 */
-.sidebar {
-  width:200px; background:var(--bg2); border-right:1px solid var(--border);
-  padding:1rem;
-}
-.nav-item {
-  padding:0.75rem; border-radius:8px; margin-bottom:0.5rem;
-  color:var(--text2); cursor:pointer;
-}
-.nav-item.active { background:rgba(0,255,157,0.1); color:var(--accent); }
+/* ===== APP SHELL ===== */
+#app{display:none;height:100vh;flex-direction:column;}
+#app.on{display:flex;}
 
-/* 中间内容 */
-.main { flex:1; padding:1rem; overflow:auto; }
-.card {
-  background:var(--bg2); border:1px solid var(--border);
-  border-radius:12px; padding:1rem; margin-bottom:1rem;
-}
-.strategy-card {
-  border:1px solid var(--accent); background:rgba(0,255,157,0.05);
-}
-.btn {
-  background:#111827; color:var(--text); border:1px solid var(--border);
-  border-radius:6px; padding:0.5rem 1rem; margin-right:0.5rem;
-}
-.btn-primary { background:var(--accent); color:#000; border:none; }
+/* ===== TOPBAR ===== */
+.topbar{height:44px;background:var(--bg2);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 1rem;gap:1.5rem;flex-shrink:0;position:relative;z-index:10;}
+.tl-logo{font-family:var(--mono);font-size:.95rem;color:var(--g);letter-spacing:-1px;display:flex;align-items:center;gap:4px;}
+.tl-logo::before{content:'⬡';color:var(--g);font-size:1.1rem;}
+.mkt-strip{display:flex;gap:1.25rem;flex:1;}
+.mkt-item{font-size:11px;display:flex;align-items:center;gap:5px;}
+.mkt-name{color:var(--tx3);}
+.mkt-val{font-family:var(--mono);font-size:11px;}
+.mkt-chg{font-family:var(--mono);font-size:10px;}
+.up{color:var(--g);} .dn{color:var(--r);}
+.tl-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.status-pill{font-size:10px;padding:3px 10px;border-radius:20px;font-family:var(--mono);}
+.sp-ok{background:rgba(0,229,160,0.12);color:var(--g);border:1px solid rgba(0,229,160,0.25);}
+.sp-warn{background:rgba(255,170,0,0.12);color:var(--am);border:1px solid rgba(255,170,0,0.25);}
+.top-btn{width:30px;height:30px;background:var(--bg4);border:1px solid var(--b2);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;position:relative;transition:border-color .2s;}
+.top-btn:hover{border-color:var(--b3);}
+.badge-dot{position:absolute;top:5px;right:5px;width:5px;height:5px;background:var(--r);border-radius:50%;}
+.user-pill{background:var(--bg4);border:1px solid var(--b2);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--tx2);cursor:pointer;font-family:var(--mono);}
 
-/* 右侧面板 */
-.right {
-  width:320px; background:var(--bg2); border-left:1px solid var(--border);
-  padding:1rem;
-}
+/* ===== BODY ===== */
+.body{display:flex;flex:1;overflow:hidden;}
 
-/* 弹窗 */
-.modal-overlay {
-  position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none;
-  align-items:center; justify-content:center;
-}
-.modal {
-  background:var(--bg2); border:1px solid var(--border);
-  border-radius:12px; padding:1.5rem; width:420px;
-}
+/* ===== SIDEBAR ===== */
+.sidebar{width:190px;background:var(--bg2);border-right:1px solid var(--b1);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.nav-section{padding:.9rem .8rem .25rem;font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;}
+.nav-item{padding:.5rem .8rem;display:flex;align-items:center;gap:8px;cursor:pointer;border-radius:6px;margin:1px 4px;font-size:12px;color:var(--tx2);transition:all .15s;position:relative;}
+.nav-item:hover{background:var(--bg3);color:var(--tx);}
+.nav-item.on{background:rgba(0,229,160,0.08);color:var(--g);}
+.nav-item .ni-icon{font-size:13px;width:16px;text-align:center;}
+.n-badge{margin-left:auto;font-size:9px;padding:1px 5px;border-radius:8px;font-family:var(--mono);}
+.nb-r{background:rgba(255,61,90,0.2);color:var(--r);}
+.nb-g{background:rgba(0,229,160,0.15);color:var(--g);}
+.sidebar-footer{margin-top:auto;padding:.75rem;}
+.ai-council{background:var(--bg3);border:1px solid var(--b1);border-radius:10px;padding:.75rem;}
+.ai-council-title{font-size:9px;color:var(--tx3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:.5rem;}
+.ai-node{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx2);margin-bottom:3px;}
+.ai-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.ai-dot.on{background:var(--g);box-shadow:0 0 4px var(--g);}
+.ai-dot.idle{background:var(--tx3);}
+.ai-dot.thinking{background:var(--am);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4};}
 
-/* Toast */
-.toast {
-  position:fixed; bottom:20px; right:20px; background:var(--accent);
-  color:#000; padding:1rem; border-radius:8px; display:none;
-}
+/* ===== MAIN AREA ===== */
+.main{flex:1;overflow-y:auto;padding:1.25rem 1.5rem;}
+.page{display:none;}
+.page.on{display:block;}
+
+/* ===== RIGHT PANEL ===== */
+.rpanel{width:320px;background:var(--bg2);border-left:1px solid var(--b1);display:flex;flex-direction:column;flex-shrink:0;}
+.rp-tabs{display:flex;border-bottom:1px solid var(--b1);padding:0 .75rem;flex-shrink:0;}
+.rp-tab{padding:.6rem .75rem;font-size:11px;cursor:pointer;color:var(--tx3);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;}
+.rp-tab.on{color:var(--g);border-bottom-color:var(--g);}
+.rp-body{flex:1;overflow-y:auto;padding:.75rem;}
+.rp-section{display:none;}
+.rp-section.on{display:block;}
+
+/* ===== CARDS ===== */
+.card{background:var(--bg3);border:1px solid var(--b1);border-radius:10px;padding:1rem;margin-bottom:.75rem;}
+.card-h{font-size:9px;color:var(--tx3);letter-spacing:2px;text-transform:uppercase;margin-bottom:.75rem;}
+.signal-card{background:var(--bg3);border-radius:12px;padding:1.25rem;margin-bottom:.75rem;position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s;}
+.signal-card:hover{border-color:var(--b3) !important;}
+.sc-top-line{position:absolute;top:0;left:0;right:0;height:2px;}
+.sc-type{font-size:9px;font-family:var(--mono);padding:3px 8px;border-radius:3px;display:inline-block;margin-bottom:.5rem;}
+.sc-name{font-size:1rem;font-weight:500;margin-bottom:.2rem;}
+.sc-logic{font-size:11px;color:var(--tx2);margin-bottom:.75rem;line-height:1.6;}
+.price-band{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:.75rem;}
+.pb-item{background:var(--bg4);border-radius:6px;padding:.5rem;text-align:center;}
+.pb-label{font-size:9px;color:var(--tx3);margin-bottom:3px;}
+.pb-val{font-family:var(--mono);font-size:.85rem;font-weight:700;}
+.pbv-buy{color:var(--g);}
+.pbv-add{color:var(--tl);}
+.pbv-stop{color:var(--r);}
+.pbv-tp1{color:var(--am);}
+.pbv-tp2{color:var(--pu);}
+.ma-row{display:flex;gap:6px;margin-bottom:.75rem;flex-wrap:wrap;}
+.ma-chip{font-size:10px;font-family:var(--mono);padding:2px 8px;background:var(--bg4);border-radius:4px;color:var(--tx2);}
+.votes-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:.75rem;}
+.vote-chip{font-size:10px;padding:2px 8px;border-radius:4px;background:var(--bg4);display:flex;align-items:center;gap:4px;}
+.vc-bull{color:var(--g);}
+.vc-bear{color:var(--r);}
+.vc-neut{color:var(--am);}
+.sc-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.btn{padding:.4rem .9rem;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid var(--b2);background:var(--bg4);color:var(--tx2);transition:all .15s;font-family:var(--body);}
+.btn:hover{border-color:var(--b3);color:var(--tx);}
+.btn-g{background:var(--g);color:#000;border-color:transparent;font-weight:700;}
+.btn-g:hover{background:var(--g2);color:#000;}
+.btn-b{background:rgba(61,139,255,0.15);color:var(--bl);border-color:rgba(61,139,255,0.3);}
+.btn-b:hover{background:rgba(61,139,255,0.25);}
+.btn-r{background:rgba(255,61,90,0.12);color:var(--r);border-color:rgba(255,61,90,0.25);}
+.risk-row{display:flex;gap:.75rem;align-items:center;margin-bottom:.5rem;font-size:10px;color:var(--tx3);}
+
+/* ===== METRICS ===== */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:.75rem;}
+.metric{background:var(--bg3);border-radius:8px;padding:.75rem;text-align:center;}
+.metric-label{font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.metric-val{font-family:var(--mono);font-size:1.1rem;font-weight:700;}
+
+/* ===== HEALTH BAR ===== */
+.h-badge{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:500;}
+.hb-g{background:rgba(0,229,160,0.12);color:var(--g);}
+.hb-y{background:rgba(255,170,0,0.12);color:var(--am);}
+.hb-r{background:rgba(255,61,90,0.12);color:var(--r);}
+
+/* ===== NEWS ===== */
+.news-item{padding:.6rem 0;border-bottom:1px solid var(--b1);cursor:pointer;}
+.news-item:hover .news-title{color:var(--bl);}
+.heat-tag{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:3px;margin-right:4px;}
+.ht-s{background:rgba(255,61,90,0.15);color:var(--r);}
+.ht-a{background:rgba(255,170,0,0.15);color:var(--am);}
+.ht-b{background:rgba(61,139,255,0.12);color:var(--bl);}
+.news-title{font-size:12px;line-height:1.5;}
+.news-meta{font-size:10px;color:var(--tx3);margin-top:2px;display:flex;gap:12px;}
+.heat-segs{display:flex;gap:2px;margin-top:4px;}
+.hs{height:2px;flex:1;border-radius:1px;background:var(--b1);}
+.hs.on{background:var(--r);}
+
+/* ===== AI CHAT AREA ===== */
+.ai-chat{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem;}
+.ai-msg{padding:.75rem;border-radius:8px;font-size:12px;line-height:1.7;}
+.ai-msg.system{background:var(--bg4);color:var(--tx2);border-left:2px solid var(--b2);}
+.ai-msg.ai{background:rgba(0,229,160,0.06);color:var(--tx);border-left:2px solid var(--g);}
+.ai-msg.user{background:rgba(61,139,255,0.08);color:var(--tx);border-left:2px solid var(--bl);}
+.ai-msg-model{font-size:9px;font-family:var(--mono);margin-bottom:4px;color:var(--tx3);}
+.ai-input-area{display:flex;gap:6px;align-items:flex-end;}
+.ai-textarea{flex:1;background:var(--bg4);border:1px solid var(--b2);border-radius:8px;padding:.6rem .75rem;color:var(--tx);font-family:var(--body);font-size:12px;resize:none;outline:none;min-height:60px;transition:border-color .2s;}
+.ai-textarea:focus{border-color:var(--g);}
+.ai-send-btn{width:36px;height:36px;background:var(--g);border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.ai-send-btn:hover{background:var(--g2);}
+.typing-indicator{display:flex;gap:4px;align-items:center;padding:.5rem .75rem;}
+.typing-dot{width:5px;height:5px;border-radius:50%;background:var(--g);animation:tdot .8s infinite;}
+.typing-dot:nth-child(2){animation-delay:.15s;}
+.typing-dot:nth-child(3){animation-delay:.3s;}
+@keyframes tdot{0%,80%,100%{transform:scale(1);opacity:.5;}40%{transform:scale(1.2);opacity:1;}}
+
+/* ===== WATCHLIST ===== */
+.watch-row{background:var(--bg4);border-radius:8px;padding:.75rem;margin-bottom:.5rem;}
+.wr-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;}
+.wr-stock{font-weight:500;font-size:13px;}
+.wr-current{font-family:var(--mono);font-size:12px;}
+.wr-levels{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;font-size:10px;}
+.wrl{text-align:center;}
+.wrl-l{color:var(--tx3);margin-bottom:2px;}
+.wr-status{font-size:10px;padding:2px 8px;border-radius:4px;margin-top:.4rem;text-align:center;}
+.wrs-waiting{background:rgba(255,170,0,0.1);color:var(--am);}
+.wrs-near{background:rgba(0,229,160,0.1);color:var(--g);}
+.wrs-triggered{background:rgba(255,61,90,0.1);color:var(--r);}
+
+/* ===== MODAL ===== */
+.modal-wrap{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;display:none;align-items:center;justify-content:center;}
+.modal-wrap.on{display:flex;}
+.modal{background:var(--bg3);border:1px solid var(--b2);border-radius:14px;padding:1.5rem;width:480px;max-height:85vh;overflow-y:auto;position:relative;}
+.modal::before{content:'';position:absolute;top:0;left:30%;right:30%;height:1px;background:var(--g);}
+.modal-title{font-size:.95rem;font-weight:500;margin-bottom:1.25rem;display:flex;justify-content:space-between;align-items:center;}
+.modal-close{cursor:pointer;color:var(--tx3);font-size:18px;transition:color .15s;}
+.modal-close:hover{color:var(--tx);}
+.fl{font-size:10px;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;margin-bottom:.35rem;display:block;}
+.fi{width:100%;background:var(--bg4);border:1px solid var(--b2);border-radius:7px;padding:.6rem .75rem;color:var(--tx);font-family:var(--body);font-size:13px;outline:none;transition:border-color .2s;margin-bottom:.85rem;}
+.fi:focus{border-color:var(--g);}
+.fi-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+
+/* ===== TOAST ===== */
+.toast-stack{position:fixed;bottom:1.5rem;right:1.5rem;z-index:800;display:flex;flex-direction:column;gap:.5rem;}
+.toast{background:var(--bg3);border:1px solid var(--b2);border-radius:10px;padding:.75rem 1rem;display:flex;align-items:flex-start;gap:.6rem;max-width:300px;animation:toastIn .3s ease;position:relative;overflow:hidden;}
+.toast::before{content:'';position:absolute;bottom:0;left:0;height:2px;animation:toastBar 5s linear forwards;}
+.toast.info::before{background:var(--bl);}
+.toast.success::before{background:var(--g);}
+.toast.warn::before{background:var(--am);}
+.toast.danger::before{background:var(--r);}
+@keyframes toastIn{from{transform:translateX(30px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@keyframes toastBar{from{width:100%;}to{width:0;}}
+.toast-icon{font-size:1.1rem;flex-shrink:0;}
+.toast-body .t1{font-size:12px;font-weight:500;}
+.toast-body .t2{font-size:10px;color:var(--tx2);margin-top:1px;}
+
+/* ===== LOAD MORE ===== */
+.load-more{display:flex;align-items:center;justify-content:center;padding:1rem;cursor:pointer;color:var(--tx3);font-size:12px;gap:6px;border:1px dashed var(--b1);border-radius:10px;transition:all .2s;margin-top:.5rem;}
+.load-more:hover{border-color:var(--g);color:var(--g);}
+.loading-spin{display:inline-block;width:14px;height:14px;border:2px solid var(--b2);border-top-color:var(--g);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ===== POSITION ROWS ===== */
+.pos-row{display:flex;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--b1);cursor:pointer;transition:background .15s;}
+.pos-row:hover{background:var(--bg3);margin:0 -.75rem;padding:.6rem .75rem;border-radius:6px;}
+.pr-info{flex:1;}
+.pr-name{font-size:13px;font-weight:500;}
+.pr-code{font-size:10px;color:var(--tx3);font-family:var(--mono);}
+.pr-pnl{text-align:right;}
+.pr-val{font-family:var(--mono);font-size:12px;font-weight:700;}
+.pr-cost{font-size:10px;color:var(--tx3);}
+
+/* ===== CHART CONTAINERS ===== */
+.chart-wrap{position:relative;margin-bottom:.75rem;}
+
+/* ===== PAGE TABS ===== */
+.page-tabs{display:flex;border-bottom:1px solid var(--b1);margin-bottom:1rem;}
+.pt{padding:.5rem .9rem;font-size:12px;cursor:pointer;color:var(--tx3);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;}
+.pt.on{color:var(--g);border-bottom-color:var(--g);}
+
+/* ===== FUNNEL ===== */
+.funnel-row{display:flex;align-items:center;gap:.5rem;padding:.4rem 0;border-bottom:1px solid var(--b1);font-size:11px;}
+.fr-num{font-family:var(--mono);font-size:.9rem;font-weight:700;color:var(--tx3);width:28px;}
+.fr-info{flex:1;}
+.fr-reason{font-size:10px;color:var(--tx3);}
+.fr-tag{padding:1px 6px;border-radius:3px;font-size:9px;margin-left:auto;}
+.frt-pass{background:rgba(0,229,160,0.12);color:var(--g);}
+.frt-fail{background:rgba(255,61,90,0.1);color:var(--r);}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px;}
+::-webkit-scrollbar-thumb:hover{background:var(--tx3);}
+
+/* ===== HEALTH SCORE RING ===== */
+.score-ring{position:relative;width:70px;height:70px;flex-shrink:0;}
+.score-ring svg{transform:rotate(-90deg);}
+.score-ring .score-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.95rem;font-weight:700;}
+
+/* ===== PAGE HEADER ===== */
+.page-header{margin-bottom:1.25rem;}
+.page-title{font-size:1rem;font-weight:500;margin-bottom:.2rem;}
+.page-sub{font-size:11px;color:var(--tx3);}
+
+/* ===== UPLOAD ===== */
+.upload-zone{border:2px dashed var(--b2);border-radius:12px;padding:2.5rem;text-align:center;cursor:pointer;transition:all .2s;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--g);background:rgba(0,229,160,0.03);}
+.upload-icon{font-size:2.5rem;margin-bottom:.75rem;}
+
+/* ===== REPORT ===== */
+.report-hero{text-align:center;padding:1.5rem 1rem;background:var(--bg3);border-radius:12px;margin-bottom:.75rem;position:relative;overflow:hidden;}
+.rh-emoji{font-size:3rem;margin-bottom:.5rem;}
+.rh-headline{font-size:.95rem;font-weight:500;}
+.rh-sub{font-size:11px;color:var(--tx2);margin-top:.25rem;}
+.attr-row{display:flex;align-items:center;gap:.5rem;padding:.35rem 0;font-size:11px;}
+.attr-name{width:65px;color:var(--tx2);}
+.attr-bar{flex:1;height:3px;background:var(--b1);border-radius:2px;overflow:hidden;}
+.attr-fill{height:100%;border-radius:2px;}
+.attr-val{width:45px;text-align:right;font-family:var(--mono);}
 </style>
 </head>
 <body>
 
-<!-- 登录 -->
-<div id="login-screen">
-  <div class="login-box">
-    <h2>输入昵称进入驾驶舱</h2>
-    <input id="nick" placeholder="你的昵称">
-    <button class="login-btn" onclick="login()">进入 AlphaPulse</button>
+<!-- ===== LOGIN ===== -->
+<div id="login">
+  <div class="login-halo"></div>
+  <div class="login-logo">α</div>
+  <div class="login-sub">AI Quantitative Command Center</div>
+  <div class="login-card">
+    <div class="api-notice">
+      ⚡ 输入你的 Claude API Key 以启用真实 AI 分析。<br>
+      免费获取：<a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> · 数据仅存本地，绝不上传
+    </div>
+    <label class="field-label">你的代号</label>
+    <input type="text" class="field-input" id="login-nick" placeholder="例：Alpha猎手">
+    <label class="field-label">Claude API Key（可选）</label>
+    <input type="text" class="field-input" id="login-key" placeholder="sk-ant-...">
+    <button class="login-btn" onclick="enterApp()">进入驾驶舱 →</button>
   </div>
 </div>
 
-<!-- 主界面 -->
+<!-- ===== APP ===== -->
 <div id="app">
+
+  <!-- TOPBAR -->
   <div class="topbar">
-    <div class="top-logo">αPULSE</div>
-    <div class="market">
-      上证：<span id="sz">--</span>
-      深成：<span id="sc">--</span>
+    <div class="tl-logo">αPULSE</div>
+    <div class="mkt-strip" id="mkt-strip">
+      <div class="mkt-item"><span class="mkt-name">上证</span><span class="mkt-val up" id="m-sh">3,412.56</span><span class="mkt-chg up">+0.87%</span></div>
+      <div class="mkt-item"><span class="mkt-name">深成</span><span class="mkt-val up" id="m-sz">10,892.34</span><span class="mkt-chg up">+1.12%</span></div>
+      <div class="mkt-item"><span class="mkt-name">创业板</span><span class="mkt-val dn" id="m-cy">2,156.78</span><span class="mkt-chg dn">-0.34%</span></div>
+      <div class="mkt-item"><span class="mkt-name">北证50</span><span class="mkt-val up" id="m-bz">1,023.45</span><span class="mkt-chg up">+2.41%</span></div>
+    </div>
+    <div class="tl-right">
+      <div class="status-pill sp-ok" id="ai-status-pill">● AI 委员会就绪</div>
+      <div class="top-btn" onclick="showToast('info','⏰ 提醒','天合光能接近止损线 ¥27.40，请注意')">🔔<div class="badge-dot"></div></div>
+      <div class="user-pill" id="user-pill">···</div>
     </div>
   </div>
-  <div class="body">
-    <div class="sidebar">
-      <div class="nav-item active" onclick="switchPage('strategy')">🎯 策略</div>
-      <div class="nav-item" onclick="switchPage('portfolio')">💼 持仓</div>
-      <div class="nav-item" onclick="switchPage('news')">⚡ 新闻</div>
-    </div>
 
-    <!-- 策略页 -->
-    <div class="main" id="page-strategy">
-      <div class="card strategy-card">
-        <div style="color:var(--accent); font-weight:bold;">今日推荐：大普微 688585</div>
-        <div style="margin:0.5rem 0;">买点：42.80 | 止损：39.50 | 止盈：58.00</div>
-        <div style="font-size:12px; color:var(--text2);">逻辑：算力订单暴增，估值低位</div>
-        <div style="margin-top:1rem;">
-          <button class="btn btn-primary" onclick="addMonitor()">加入监控</button>
-          <button class="btn" onclick="loadMore()">更多推荐</button>
+  <!-- BODY -->
+  <div class="body">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="nav-section">核心</div>
+      <div class="nav-item on" onclick="gotoPage('strategy',this)"><span class="ni-icon">◎</span>策略指挥室</div>
+      <div class="nav-item" onclick="gotoPage('portfolio',this)"><span class="ni-icon">◈</span>持仓健康<span class="n-badge nb-r">!1</span></div>
+      <div class="nav-item" onclick="gotoPage('watchlist',this)"><span class="ni-icon">◉</span>监控列表<span class="n-badge nb-g">3</span></div>
+      <div class="nav-item" onclick="gotoPage('news',this)"><span class="ni-icon">◐</span>热点雷达<span class="n-badge nb-r">S3</span></div>
+      <div class="nav-section">研究</div>
+      <div class="nav-item" onclick="gotoPage('precision',this)"><span class="ni-icon">⬡</span>精选研究</div>
+      <div class="nav-item" onclick="gotoPage('ai-lab',this)"><span class="ni-icon">◫</span>AI 研判室</div>
+      <div class="nav-item" onclick="gotoPage('calendar',this)"><span class="ni-icon">◷</span>新股日历</div>
+      <div class="nav-section">我的</div>
+      <div class="nav-item" onclick="gotoPage('report',this)"><span class="ni-icon">◑</span>每日战报<span class="n-badge nb-g">新</span></div>
+      <div class="nav-item" onclick="gotoPage('upload',this)"><span class="ni-icon">⬆</span>导入持仓</div>
+      <div class="sidebar-footer">
+        <div class="ai-council">
+          <div class="ai-council-title">AI 委员会</div>
+          <div class="ai-node"><div class="ai-dot on"></div>DeepSeek R2</div>
+          <div class="ai-node"><div class="ai-dot on" id="claude-dot"></div>Claude 3.5</div>
+          <div class="ai-node"><div class="ai-dot idle"></div>豆包 Pro</div>
+          <div class="ai-node"><div class="ai-dot idle"></div>Gemini Ultra</div>
         </div>
       </div>
     </div>
 
-    <!-- 持仓页 -->
-    <div class="main" id="page-portfolio" style="display:none;">
-      <div class="card">
-        <h3>上传持仓截图</h3>
-        <input type="file" id="img" accept="image/*" onchange="uploadImg()">
-        <div id="holdings"></div>
+    <!-- MAIN -->
+    <div class="main" id="main-scroll">
+
+      <!-- === STRATEGY PAGE === -->
+      <div class="page on" id="page-strategy">
+        <div class="page-header">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div><div class="page-title">今日狙击策略</div><div class="page-sub">AI 委员会综合研判 · 盘前自动更新</div></div>
+            <div style="display:flex;gap:6px;">
+              <span class="status-pill sp-ok">市场信号：激进模式开启</span>
+              <button class="btn" onclick="generateMoreSignals()">⟳ 重新生成</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="signal-list"></div>
+
+        <div class="load-more" id="load-more-btn" onclick="loadMoreSignals()">
+          <span id="load-more-text">⬇ 加载更多推荐</span>
+        </div>
+
+        <div class="card" style="margin-top:.75rem;">
+          <div class="card-h">今日筛选漏斗</div>
+          <div class="funnel-row"><div class="fr-num">51</div><div class="fr-info"><div>候选标的池</div><div class="fr-reason">次新+反转+龙头+妖股胚子</div></div><div class="fr-tag frt-fail">全量扫描</div></div>
+          <div class="funnel-row"><div class="fr-num">14</div><div class="fr-info"><div>有明确催化剂</div><div class="fr-reason">72小时内有公告/事件/热度≥70</div></div><div class="fr-tag frt-fail">过滤37只</div></div>
+          <div class="funnel-row"><div class="fr-num">5</div><div class="fr-info"><div>盈亏比 ≥ 3:1</div><div class="fr-reason">牛/中/熊三情景ATR模拟</div></div><div class="fr-tag frt-fail">过滤9只</div></div>
+          <div class="funnel-row"><div class="fr-num">3</div><div class="fr-info"><div style="color:var(--g)">最终推荐 · 相关性分散</div><div class="fr-reason">不同驱动逻辑，降低系统风险</div></div><div class="fr-tag frt-pass">✓ 通过</div></div>
+        </div>
+      </div>
+
+      <!-- === PORTFOLIO PAGE === -->
+      <div class="page" id="page-portfolio">
+        <div class="page-header">
+          <div class="page-title">持仓健康仪表盘</div>
+          <div class="page-sub">AI 多因子体检 · 周期定位 · 动态调仓</div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">今日盈亏</div><div class="metric-val up">+¥4,823</div></div>
+          <div class="metric"><div class="metric-label">总收益率</div><div class="metric-val up">+23.4%</div></div>
+          <div class="metric"><div class="metric-label">持仓均分</div><div class="metric-val" style="color:var(--am)">68</div></div>
+          <div class="metric"><div class="metric-label">超额收益</div><div class="metric-val up">+12.1%</div></div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+            <div class="card-h" style="margin:0">AI 调仓指令</div>
+            <div style="font-size:10px;color:var(--am);background:rgba(255,170,0,0.1);padding:2px 8px;border-radius:4px;">周期：爬坡阶段</div>
+          </div>
+          <div style="font-size:11px;color:var(--tx2);line-height:1.8;margin-bottom:.75rem;">
+            建议将 <span style="color:var(--am)">中芯国际</span> 的30%仓位移至 <span style="color:var(--g)">大普微</span>。
+            理由：中芯PE分位已达85%历史高位，量能萎缩，趋势趋弱；大普微同赛道但PE仅38%分位，订单能见度3个季度，逻辑更纯粹。
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-g" onclick="showToast('success','✅ 已记录','调仓建议已加入执行清单')">接受建议</button>
+            <button class="btn" onclick="openAiAnalysis('中芯国际 vs 大普微 调仓逻辑详细分析')">AI详细解释</button>
+            <button class="btn btn-r" onclick="showToast('warn','📝 已标注','建议保留，等待更好入场机会')">暂缓</button>
+          </div>
+        </div>
+        <div class="card" id="portfolio-list">
+          <div class="card-h">个股持仓</div>
+        </div>
+        <div class="card">
+          <div class="card-h">持仓结构风险图</div>
+          <div class="chart-wrap" style="height:180px;"><canvas id="portfolio-pie"></canvas></div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--tx2);">
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:2px;background:#3d8bff;display:inline-block"></span>半导体 45%</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:2px;background:#00e5a0;display:inline-block"></span>新能源 30%</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:2px;background:#ffaa00;display:inline-block"></span>光伏 15%</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:2px;background:#9d7dfa;display:inline-block"></span>现金 10%</span>
+          </div>
+          <div style="font-size:10px;color:var(--r);margin-top:.5rem;">⚠ 半导体集中度偏高(45%)，建议控制在35%以内，分散至其他高景气赛道</div>
+        </div>
+      </div>
+
+      <!-- === WATCHLIST PAGE === -->
+      <div class="page" id="page-watchlist">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+          <div><div class="page-title">监控列表</div><div class="page-sub">精确买卖点 · 实时触达提醒</div></div>
+          <button class="btn btn-g" onclick="openAddWatch()">+ 新增监控</button>
+        </div>
+        <div id="watchlist-container"></div>
+      </div>
+
+      <!-- === NEWS PAGE === -->
+      <div class="page" id="page-news">
+        <div class="page-header">
+          <div class="page-title">热点雷达</div>
+          <div class="page-sub">热力值 = 传播速度 × 资金共振度 × 产业链穿透力</div>
+        </div>
+        <div class="card">
+          <div class="card-h">事件冲击排行 · 实时更新</div>
+          <div id="news-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-h">持仓舆情哨兵</div>
+          <div style="display:flex;align-items:center;gap:.5rem;padding:.4rem 0;font-size:11px;"><div style="width:6px;height:6px;background:var(--g);border-radius:50%;flex-shrink:0;box-shadow:0 0 4px var(--g)"></div><div><span style="color:var(--tx)">大普微</span> · 机构研报情绪持续走强，无异常</div></div>
+          <div style="display:flex;align-items:center;gap:.5rem;padding:.4rem 0;font-size:11px;"><div style="width:6px;height:6px;background:var(--am);border-radius:50%;flex-shrink:0;"></div><div><span style="color:var(--am)">天合光能</span> · 股吧讨论量上升62%，"减持"词频增加，需关注</div></div>
+          <div style="display:flex;align-items:center;gap:.5rem;padding:.4rem 0;font-size:11px;"><div style="width:6px;height:6px;background:var(--g);border-radius:50%;flex-shrink:0;box-shadow:0 0 4px var(--g)"></div><div><span style="color:var(--tx)">宁德时代</span> · 正面情绪，张坤加仓消息发酵中</div></div>
+        </div>
+      </div>
+
+      <!-- === PRECISION PAGE === -->
+      <div class="page" id="page-precision">
+        <div class="page-header"><div class="page-title">精选研究</div><div class="page-sub">AI 内参室 · 多维挖掘引擎</div></div>
+        <div class="page-tabs">
+          <div class="pt on" onclick="switchSub(this,'prec-hot')">热门板块</div>
+          <div class="pt" onclick="switchSub(this,'prec-master')">大佬动向</div>
+          <div class="pt" onclick="switchSub(this,'prec-monster')">妖股雷达</div>
+          <div class="pt" onclick="switchSub(this,'prec-reversal')">反转挖掘</div>
+        </div>
+        <div id="prec-hot" class="sub-page">
+          <div class="card">
+            <div class="card-h">当前最热板块 · 产业链穿透</div>
+            <div style="margin-bottom:.75rem;">
+              <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;"><span style="font-size:13px;font-weight:500;">AI算力基础设施</span><span class="n-badge nb-r">S级热度 94</span></div>
+              <div style="font-size:11px;color:var(--tx2);margin-bottom:.4rem;">产业链：芯片设计 → 封装测试 → PCB → 服务器整机 → IDC</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                <span class="heat-tag ht-b" style="font-size:10px;">大普微 · 低位 ★★★</span>
+                <span class="heat-tag" style="font-size:10px;background:rgba(255,170,0,0.1);color:var(--am)">寒武纪 · 中位 ★★</span>
+                <span class="heat-tag" style="font-size:10px;background:rgba(255,61,90,0.1);color:var(--r)">沐曦科技 · 超买 ★</span>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;"><span style="font-size:13px;font-weight:500;">人形机器人</span><span class="n-badge" style="background:rgba(255,170,0,0.15);color:var(--am)">A级热度 79</span></div>
+              <div style="font-size:11px;color:var(--tx2);margin-bottom:.4rem;">关注：减速器、力矩传感器、BLDC电机、关节模组</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                <span class="heat-tag ht-b" style="font-size:10px;">绿的谐波 · 低位 ★★★</span>
+                <span class="heat-tag ht-b" style="font-size:10px;">双环传动 · 低位 ★★★</span>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-b" style="width:100%;justify-content:center;" onclick="openAiAnalysis('分析AI算力基础设施板块最值得买的3只股票，给出详细的买点止损和目标价')">⟳ AI深度分析此板块</button>
+        </div>
+        <div id="prec-master" class="sub-page" style="display:none">
+          <div class="card">
+            <div class="card-h">顶级投资人最新动向</div>
+            <div class="funnel-row"><div style="font-size:20px;margin-right:4px;">🌏</div><div class="fr-info"><div style="font-weight:500">段永平 Q1 13F</div><div class="fr-reason" style="font-size:11px;margin-top:1px">增持拼多多 · 当前超成本区21%，需等待回调至$96-103区间</div></div></div>
+            <div class="funnel-row"><div style="font-size:20px;margin-right:4px;">🦁</div><div class="fr-info"><div style="font-weight:500">张坤 易方达蓝筹</div><div class="fr-reason" style="font-size:11px;margin-top:1px">新建仓宁德时代 · 与您持仓重合，顶级机构验证逻辑</div></div></div>
+            <div class="funnel-row"><div style="font-size:20px;margin-right:4px;">🐉</div><div class="fr-info"><div style="font-weight:500">龙虎榜游资 今日</div><div class="fr-reason" style="font-size:11px;margin-top:1px">上午席位集中买入大普微，与AI策略共振，主力建仓信号</div></div></div>
+          </div>
+        </div>
+        <div id="prec-monster" class="sub-page" style="display:none">
+          <div class="card">
+            <div class="card-h">妖股胚子筛选器</div>
+            <div style="font-size:11px;color:var(--tx2);margin-bottom:.75rem;">条件：流通市值&lt;20亿 + 股价&lt;15元 + 连续2日放量150% + 无机构持仓</div>
+            <div id="monster-list"></div>
+          </div>
+          <button class="btn btn-b" style="width:100%" onclick="openAiAnalysis('帮我分析当前A股市场最有可能成为妖股的3只次新小盘股，要给出具体代码和理由')">AI扫描今日妖股胚子</button>
+        </div>
+        <div id="prec-reversal" class="sub-page" style="display:none">
+          <div class="card">
+            <div class="card-h">业绩反转雷达 · EPS由负转正信号</div>
+            <div class="funnel-row"><div style="font-size:18px;margin-right:4px;">✦</div><div class="fr-info"><div>天合光能 <span style="color:var(--g)">EPS转正</span></div><div class="fr-reason">Q1季报利润+128%，但股价滞后，戴维斯双击机会</div></div><div class="fr-tag frt-pass">持有</div></div>
+            <div class="funnel-row"><div style="font-size:18px;margin-right:4px;">✦</div><div class="fr-info"><div>某光学股 <span style="color:var(--am)">订单突增</span></div><div class="fr-reason">新增AI眼镜订单，季报预增超200%，未充分定价</div></div><div class="fr-tag frt-pass">关注</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- === AI LAB PAGE === -->
+      <div class="page" id="page-ai-lab">
+        <div class="page-header"><div class="page-title">AI 研判室</div><div class="page-sub">与 Claude 实时对话 · 深度分析任意标的</div></div>
+        <div class="card" style="margin-bottom:.75rem;">
+          <div class="card-h">快捷问题模板</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="btn btn-b" onclick="quickAsk('分析今日A股最热板块龙头股，给出具体买点止损和目标价')">今日龙头分析</button>
+            <button class="btn btn-b" onclick="quickAsk('有什么近期即将上市的A股新股，分析其与现有上市公司的关联，哪些值得打新')">新股机会</button>
+            <button class="btn btn-b" onclick="quickAsk('筛选A股中PE低于20、近3个月大股东持续增持、且处于业绩上升周期的股票')">大股东增持股</button>
+            <button class="btn btn-b" onclick="quickAsk('分析当前A股市场，有什么还在历史低位但未来一个月有重大催化剂的股票')">低位催化剂</button>
+            <button class="btn btn-b" onclick="quickAsk('我持有大普微688585，成本36.20元，请分析当前是否应该加仓、持有还是止盈，给出具体价位建议')">持仓诊断</button>
+          </div>
+        </div>
+        <div id="ai-chat-messages" class="ai-chat">
+          <div class="ai-msg system"><div class="ai-msg-model">SYSTEM</div>AI 研判室已就绪。输入任何股票问题，获取 Claude 的实时分析。<br><span style="color:var(--am)">需要配置 API Key 才能获得真实 AI 回答。</span></div>
+        </div>
+        <div class="ai-input-area">
+          <textarea class="ai-textarea" id="ai-input" placeholder="输入问题，例如：分析大普微的买点和上涨逻辑..." rows="2"></textarea>
+          <button class="ai-send-btn" onclick="sendAiMessage()">↑</button>
+        </div>
+      </div>
+
+      <!-- === CALENDAR PAGE === -->
+      <div class="page" id="page-calendar">
+        <div class="page-header"><div class="page-title">新股日历</div><div class="page-sub">即将上市 · 与持仓关联分析 · 打新建议</div></div>
+        <div id="calendar-list"></div>
+      </div>
+
+      <!-- === REPORT PAGE === -->
+      <div class="page" id="page-report">
+        <div class="page-header"><div class="page-title">每日战报</div><div class="page-sub">AI 生成个人简报 · 盘前08:00 / 盘后15:30</div></div>
+        <div class="report-hero">
+          <div class="rh-emoji">😎</div>
+          <div class="rh-headline">你今天跑赢了 91% 的A股散户</div>
+          <div class="rh-sub">主要功臣：大普微今日+5.4%，AI提前3天预判</div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">今日收益率</div><div class="metric-val up">+2.31%</div></div>
+          <div class="metric"><div class="metric-label">AI虚拟实盘(累计)</div><div class="metric-val up">+41.2%</div></div>
+          <div class="metric"><div class="metric-label">AI命中率</div><div class="metric-val" style="color:var(--bl)">73%</div></div>
+          <div class="metric"><div class="metric-label">超额收益</div><div class="metric-val up">+22.4%</div></div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+            <div class="card-h" style="margin:0">AI 参谋战绩评分</div>
+          </div>
+          <div style="text-align:center;padding:.75rem 0;">
+            <div style="font-family:var(--mono);font-size:3rem;font-weight:700;color:var(--am)">84</div>
+            <div style="font-size:12px;color:var(--am);margin-bottom:.25rem;">🏆 王牌分析师</div>
+            <div style="font-size:11px;color:var(--tx3)">累计47次推荐 · 34次正向 · 平均潜在涨幅+8.4%</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h">AI策略 vs 大盘 · 累计收益曲线</div>
+          <div class="chart-wrap" style="height:180px;"><canvas id="alpha-chart"></canvas></div>
+          <div style="display:flex;gap:14px;font-size:11px;color:var(--tx2);margin-top:.5rem;">
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:2px;background:var(--g);display:inline-block"></span>AI策略 +41.2%</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:2px;background:var(--bl);display:inline-block;border-bottom:1px dashed var(--bl)"></span>我的持仓 +23.4%</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:2px;background:var(--tx3);display:inline-block"></span>沪深300 +11.1%</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h">今日收益归因</div>
+          <div class="attr-row"><div class="attr-name">大普微</div><div class="attr-bar"><div class="attr-fill" style="width:80%;background:var(--g)"></div></div><div class="attr-val up">+5.4%</div></div>
+          <div class="attr-row"><div class="attr-name">宁德时代</div><div class="attr-bar"><div class="attr-fill" style="width:40%;background:var(--g)"></div></div><div class="attr-val up">+2.1%</div></div>
+          <div class="attr-row"><div class="attr-name">天合光能</div><div class="attr-bar"><div class="attr-fill" style="width:20%;background:var(--r)"></div></div><div class="attr-val dn">-1.3%</div></div>
+        </div>
+        <div class="card">
+          <div class="card-h">🔮 明日剧本推演</div>
+          <div style="font-size:11px;color:var(--tx2);line-height:1.9;">
+            · 大普微 财报预告概率高，<span style="color:var(--g)">正面冲击概率 72%</span><br>
+            · 美联储议息结果将公布，若降息超预期，科技板块直接受益<br>
+            · 天合光能 大股东减持窗口临近，<span style="color:var(--am)">建议关注公告，考虑减仓30%</span>
+          </div>
+        </div>
+        <button class="btn btn-b" style="width:100%" onclick="openAiAnalysis('根据今日A股行情，生成一份明日操作建议，包括值得关注的股票和对应操作策略')">⟳ AI重新生成今日战报</button>
+      </div>
+
+      <!-- === UPLOAD PAGE === -->
+      <div class="page" id="page-upload">
+        <div class="page-header"><div class="page-title">导入持仓</div><div class="page-sub">上传同花顺截图，AI自动识别持仓数据</div></div>
+        <div class="card">
+          <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+            <div class="upload-icon">📱</div>
+            <div style="font-weight:500;margin-bottom:.25rem;">拖拽或点击上传截图</div>
+            <div style="font-size:11px;color:var(--tx3)">同花顺 / 东方财富 / 通达信 均支持</div>
+            <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleFileSelect(event)">
+          </div>
+        </div>
+        <div class="card" id="upload-result" style="display:none">
+          <div class="card-h">AI 识别结果</div>
+          <div id="parsed-table"></div>
+          <div style="display:flex;gap:6px;margin-top:.75rem;">
+            <button class="btn btn-g" onclick="confirmImport()">✓ 确认导入</button>
+            <button class="btn" onclick="document.getElementById('upload-result').style.display='none'">重新上传</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:.75rem;">
+          <div class="card-h">手动添加持仓</div>
+          <div class="fi-row">
+            <div><label class="fl">股票代码</label><input type="text" class="fi" id="manual-code" placeholder="688585"></div>
+            <div><label class="fl">股票名称</label><input type="text" class="fi" id="manual-name" placeholder="大普微"></div>
+          </div>
+          <div class="fi-row">
+            <div><label class="fl">持仓成本(元)</label><input type="number" class="fi" id="manual-cost" placeholder="36.20"></div>
+            <div><label class="fl">持仓数量(股)</label><input type="number" class="fi" id="manual-qty" placeholder="2000"></div>
+          </div>
+          <button class="btn btn-g" onclick="manualAddPosition()">添加持仓</button>
+        </div>
+      </div>
+
+    </div><!-- /main -->
+
+    <!-- RIGHT PANEL -->
+    <div class="rpanel">
+      <div class="rp-tabs">
+        <div class="rp-tab on" onclick="switchRp('kline',this)">K 线</div>
+        <div class="rp-tab" onclick="switchRp('ai-detail',this)">AI 报告</div>
+        <div class="rp-tab" onclick="switchRp('alert-panel',this)">提醒</div>
+      </div>
+      <div class="rp-body">
+
+        <div class="rp-section on" id="rp-kline">
+          <div style="font-size:11px;color:var(--tx3);margin-bottom:.5rem;" id="kline-label">大普微 688585 · 点击股票切换</div>
+          <div style="border-radius:8px;overflow:hidden;margin-bottom:.75rem;background:var(--bg4);">
+            <iframe id="tv-frame"
+              src="https://s.tradingview.com/widgetembed/?frameElementId=tv1&symbol=SSE%3A688585&interval=D&hidesidetoolbar=1&saveimage=0&toolbarbg=0d1117&studies=[]&theme=dark&style=1&timezone=Asia%2FShanghai&withdateranges=1&showpopupbutton=1&locale=zh_CN"
+              style="width:100%;height:320px;border:none;" loading="lazy"></iframe>
+          </div>
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:1px">均线参数 (当前标的)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:.75rem;" id="ma-panel">
+            <div style="background:var(--bg4);border-radius:6px;padding:.5rem;text-align:center;font-size:11px;"><div style="color:var(--tx3);margin-bottom:2px">MA5</div><div style="font-family:var(--mono);color:var(--g)">42.30</div></div>
+            <div style="background:var(--bg4);border-radius:6px;padding:.5rem;text-align:center;font-size:11px;"><div style="color:var(--tx3);margin-bottom:2px">MA10</div><div style="font-family:var(--mono);color:var(--g)">40.85</div></div>
+            <div style="background:var(--bg4);border-radius:6px;padding:.5rem;text-align:center;font-size:11px;"><div style="color:var(--tx3);margin-bottom:2px">MA20</div><div style="font-family:var(--mono);color:var(--am)">38.90</div></div>
+            <div style="background:var(--bg4);border-radius:6px;padding:.5rem;text-align:center;font-size:11px;"><div style="color:var(--tx3);margin-bottom:2px">MA60</div><div style="font-family:var(--mono);color:var(--tx2)">35.20</div></div>
+          </div>
+          <div style="background:var(--bg4);border-radius:8px;padding:.75rem;font-size:11px;">
+            <div style="color:var(--tx3);margin-bottom:.4rem;font-size:9px;letter-spacing:1px;text-transform:uppercase">持仓参考</div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:var(--tx2)">我的成本</span><span style="font-family:var(--mono);color:var(--am)">¥36.20</span></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="color:var(--tx2)">现价</span><span style="font-family:var(--mono);color:var(--tx)" id="rp-current-price">¥43.05</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--tx2)">浮盈</span><span style="font-family:var(--mono);color:var(--g)" id="rp-pnl">+18.9%</span></div>
+          </div>
+        </div>
+
+        <div class="rp-section" id="rp-ai-detail">
+          <div style="font-size:11px;color:var(--tx3);margin-bottom:.75rem;">AI 委员会各方意见 · <span id="ai-detail-stock">大普微</span></div>
+          <div style="background:var(--bg4);border-radius:8px;padding:.75rem;margin-bottom:.5rem;">
+            <div style="font-size:10px;font-family:var(--mono);color:var(--bl);margin-bottom:.4rem;">◉ DeepSeek R2</div>
+            <div style="font-size:11px;color:var(--tx2);line-height:1.7">量化因子：PEG=0.38，半导体板块底部10%分位。订单能见度2.5季度，与股价修复周期匹配。核心风险：产业链景气周期逆转。</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:.4rem;font-size:10px;"><span style="color:var(--tx3);width:30px">看多</span><div style="flex:1;height:4px;background:var(--b1);border-radius:2px;overflow:hidden"><div style="width:88%;height:100%;background:var(--g)"></div></div><span style="font-family:var(--mono)">88%</span></div>
+          </div>
+          <div style="background:var(--bg4);border-radius:8px;padding:.75rem;margin-bottom:.5rem;">
+            <div style="font-size:10px;font-family:var(--mono);color:var(--pu);margin-bottom:.4rem;">◉ Claude 3.5</div>
+            <div id="claude-ai-opinion" style="font-size:11px;color:var(--tx2);line-height:1.7">管理层近6个月内部增持超3000万，信心强烈。业绩指引保守，实际超预期概率高。当前估值未充分反映AI算力周期。</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:.4rem;font-size:10px;"><span style="color:var(--tx3);width:30px">看多</span><div style="flex:1;height:4px;background:var(--b1);border-radius:2px;overflow:hidden"><div id="claude-bull-bar" style="width:82%;height:100%;background:var(--g)"></div></div><span id="claude-bull-pct" style="font-family:var(--mono)">82%</span></div>
+          </div>
+          <div style="background:var(--bg4);border-radius:8px;padding:.75rem;margin-bottom:.75rem;">
+            <div style="font-size:10px;font-family:var(--mono);color:var(--am);margin-bottom:.4rem;">◉ 豆包 Pro</div>
+            <div style="font-size:11px;color:var(--tx2);line-height:1.7">短期情绪偏热，建议分批买入。关注周四财报数据是否超预期。中长期逻辑成立。</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:.4rem;font-size:10px;"><span style="color:var(--tx3);width:30px">中性</span><div style="flex:1;height:4px;background:var(--b1);border-radius:2px;overflow:hidden"><div style="width:61%;height:100%;background:var(--am)"></div></div><span style="font-family:var(--mono)">61%</span></div>
+          </div>
+          <button class="btn btn-b" style="width:100%" onclick="openAiAnalysis('深度分析大普微688585，从基本面、技术面、资金面三个角度，给出明确的买点区间、止损价位和目标价位')">Claude 深度分析此股 ↗</button>
+        </div>
+
+        <div class="rp-section" id="rp-alert-panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+            <div style="font-size:11px;color:var(--tx3)">活跃提醒</div>
+            <button class="btn" style="font-size:10px;padding:2px 8px;" onclick="openAddWatch()">+ 新增</button>
+          </div>
+          <div id="alert-list"></div>
+        </div>
+
       </div>
     </div>
 
-    <!-- 新闻页 -->
-    <div class="main" id="page-news" style="display:none;">
-      <div class="card" id="news-list"></div>
-    </div>
-
-    <!-- 右侧K线 -->
-    <div class="right">
-      <div style="font-size:12px; color:var(--text2); margin-bottom:1rem;">K线</div>
-      <iframe id="kline" width="100%" height="300" frameborder="0"></iframe>
-    </div>
   </div>
 </div>
 
-<!-- 弹窗 -->
-<div class="modal-overlay" id="modal">
+<!-- MODALS -->
+<div class="modal-wrap" id="modal-watch">
   <div class="modal">
-    <h3>设置监控</h3>
-    <input id="m-name" placeholder="股票名称">
-    <input id="m-price" placeholder="价格">
-    <button class="btn btn-primary" onclick="saveMonitor()">保存</button>
-    <button class="btn" onclick="closeModal()">取消</button>
+    <div class="modal-title"><span>新增监控</span><span class="modal-close" onclick="closeModal('modal-watch')">×</span></div>
+    <div class="fi-row">
+      <div><label class="fl">股票代码</label><input type="text" class="fi" id="w-code" placeholder="688585"></div>
+      <div><label class="fl">股票名称</label><input type="text" class="fi" id="w-name" placeholder="大普微"></div>
+    </div>
+    <div class="fi-row">
+      <div><label class="fl">买入点(元)</label><input type="number" class="fi" id="w-buy" placeholder="42.80"></div>
+      <div><label class="fl">加仓点(元)</label><input type="number" class="fi" id="w-add" placeholder="40.50"></div>
+    </div>
+    <div class="fi-row">
+      <div><label class="fl">铁血止损(元)</label><input type="number" class="fi" id="w-stop" placeholder="39.50"></div>
+      <div><label class="fl">仓位 (%)</label><input type="number" class="fi" id="w-pos" placeholder="5" max="100"></div>
+    </div>
+    <div class="fi-row">
+      <div><label class="fl">止盈1(元)</label><input type="number" class="fi" id="w-tp1" placeholder="52.00"></div>
+      <div><label class="fl">止盈2(元)</label><input type="number" class="fi" id="w-tp2" placeholder="58.00"></div>
+    </div>
+    <label class="fl">买入逻辑</label>
+    <input type="text" class="fi" id="w-note" placeholder="例：次新低位，AI算力催化剂">
+    <div style="display:flex;gap:6px;">
+      <button class="btn btn-g" style="flex:1" onclick="saveWatch()">确认监控</button>
+      <button class="btn" onclick="closeModal('modal-watch')">取消</button>
+    </div>
   </div>
 </div>
 
-<!-- Toast -->
-<div class="toast" id="toast"></div>
+<div class="modal-wrap" id="modal-ai">
+  <div class="modal" style="width:560px">
+    <div class="modal-title"><span id="modal-ai-title">AI 深度分析</span><span class="modal-close" onclick="closeModal('modal-ai')">×</span></div>
+    <div id="modal-ai-chat" style="max-height:400px;overflow-y:auto;"></div>
+    <div class="ai-input-area" style="margin-top:.75rem;">
+      <textarea class="ai-textarea" id="modal-ai-input" placeholder="继续追问..." rows="2"></textarea>
+      <button class="ai-send-btn" onclick="sendModalAi()">↑</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toast-stack"></div>
 
 <script>
-// ============ 1. 初始化 Supabase（你等下填自己的） ============
-const SUPABASE_URL = "";
-const SUPABASE_KEY = "";
-const { createClient } = supabase;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+// ===== STATE =====
+let S = {
+  user:'', apiKey:'', positions:[], watchlist:[],
+  signalPage:0, currentStock:{code:'688585',name:'大普微'},
+  charts:{}
+};
 
-let user = "";
+const SIGNALS_DATA = [
+  {type:'低点反转狙击',typeColor:'#00e5a0',borderColor:'rgba(0,229,160,0.25)',name:'大普微',code:'688585',sector:'次新半导体',logic:'AI共识：算力芯片订单同比+340%，但PE仅历史38%分位，定价差明显。管理层连续增持，信号强烈。',buy:'42.80',add:'40.50',stop:'38.90',tp1:'52.00',tp2:'61.00',ma5:'42.30',ma10:'40.85',ma20:'38.90',ma60:'35.20',votes:[{m:'DeepSeek',v:'88%',b:true},{m:'Claude',v:'82%',b:true},{m:'豆包',v:'61%',n:true},{m:'GPT',v:'75%',b:true}],ratio:'3.8:1',pos:'5%',risk:'中高'},
+  {type:'龙头动量追强',typeColor:'#3d8bff',borderColor:'rgba(61,139,255,0.2)',name:'绿的谐波',code:'688017',sector:'人形机器人减速器',logic:'人形机器人板块S级热度催化，公司是国内减速器绝对龙头，当前位置是上涨浪中的健康回调区，量能配合。',buy:'58.20',add:'55.00',stop:'52.40',tp1:'70.00',tp2:'85.00',ma5:'59.10',ma10:'57.40',ma20:'54.80',ma60:'48.60',votes:[{m:'DeepSeek',v:'79%',b:true},{m:'Claude',v:'85%',b:true},{m:'豆包',v:'72%',b:true},{m:'GPT',v:'68%',b:true}],ratio:'3.2:1',pos:'4%',risk:'中'},
+  {type:'业绩反转掘金',typeColor:'#ffaa00',borderColor:'rgba(255,170,0,0.2)',name:'天合光能',code:'688599',sector:'光伏组件',logic:'Q1季报利润同比+128%，EPS由负转正，戴维斯双击逻辑。当前股价对应估值仅同行均值60%，分析师密集上调目标价。',buy:'27.50',add:'25.80',stop:'24.20',tp1:'34.00',tp2:'40.00',ma5:'28.10',ma10:'27.30',ma20:'26.00',ma60:'22.80',votes:[{m:'DeepSeek',v:'72%',b:true},{m:'Claude',v:'65%',b:true},{m:'豆包',v:'58%',n:true},{m:'GPT',v:'70%',b:true}],ratio:'2.8:1',pos:'3%',risk:'中低'},
+];
 
-// ============ 2. 登录 ============
-function login() {
-  user = document.getElementById("nick").value.trim();
-  if (!user) return alert("输入昵称");
-  document.getElementById("login-screen").style.display = "none";
-  document.getElementById("app").style.display = "flex";
-  showToast("欢迎，" + user);
-  loadMarket();
+const MORE_SIGNALS = [
+  {type:'妖股加速浪',typeColor:'#ff3d5a',borderColor:'rgba(255,61,90,0.2)',name:'某次新科技',code:'688XXX',sector:'AI应用次新',logic:'上市3个月，流通盘仅8亿，近3日成交量放大至均量5倍，无机构持仓，热点催化下具备短期爆发基因。',buy:'12.40',add:'11.20',stop:'10.50',tp1:'15.00',tp2:'18.00',ma5:'12.80',ma10:'12.10',ma20:'11.50',ma60:'10.20',votes:[{m:'DeepSeek',v:'55%',n:true},{m:'Claude',v:'48%',n:true}],ratio:'2.3:1',pos:'1%',risk:'极高'},
+  {type:'大佬跟买机会',typeColor:'#9d7dfa',borderColor:'rgba(157,125,250,0.2)',name:'宁德时代',code:'300750',sector:'动力电池龙头',logic:'张坤新建仓，巴菲特系基金增持新能源，当前位置处于历史估值中枢，机构密集调研后净流入加速。',buy:'185.00',add:'178.00',stop:'170.00',tp1:'210.00',tp2:'240.00',ma5:'188.40',ma10:'183.20',ma20:'176.80',ma60:'162.00',votes:[{m:'DeepSeek',v:'82%',b:true},{m:'Claude',v:'78%',b:true},{m:'豆包',v:'80%',b:true}],ratio:'3.5:1',pos:'8%',risk:'中低'},
+];
+
+const NEWS_DATA = [
+  {heat:'S',score:94,title:'国务院发布算力网络建设纲要，AI基础设施万亿级投入目标明确',time:'3分钟前',impact:'芯片→存储→散热→数据中心→IDC',segs:9},
+  {heat:'A',score:78,title:'美联储超预期降息50bp，外资加速流入A股科技板块',time:'18分钟前',impact:'北向资金净流入+42亿，科技板块受益',segs:7},
+  {heat:'A',score:71,title:'工信部：人形机器人2025年批量生产，明确核心零部件国产化',time:'35分钟前',impact:'减速器、传感器、电机为核心受益链',segs:7},
+  {heat:'B',score:62,title:'人形机器人概念股集体异动，绿的谐波等龙头领涨',time:'41分钟前',impact:'历史类似事件30日平均涨幅+24%',segs:6},
+  {heat:'B',score:55,title:'某券商报告：锂电池成本2026年降至每GWh 0.3亿元',time:'1小时前',impact:'持仓命中：宁德时代 逻辑强化',segs:5},
+];
+
+const DEFAULT_POSITIONS = [
+  {code:'688585',name:'大普微',sector:'半导体',cost:36.20,qty:2000,current:43.05},
+  {code:'688981',name:'中芯国际',sector:'晶圆代工',cost:58.50,qty:500,current:62.10},
+  {code:'688599',name:'天合光能',sector:'光伏',cost:28.90,qty:3000,current:27.50},
+  {code:'300750',name:'宁德时代',sector:'新能源',cost:182.30,qty:200,current:198.90},
+];
+
+const DEFAULT_WATCHLIST = [
+  {code:'688585',name:'大普微',current:43.05,buy:42.80,add:40.50,stop:38.90,tp1:52.00,tp2:61.00,pos:'5%',note:'次新半导体低位反转'},
+  {code:'688017',name:'绿的谐波',current:59.80,buy:58.20,add:55.00,stop:52.40,tp1:70.00,tp2:85.00,pos:'4%',note:'机器人龙头动量'},
+];
+
+// ===== INIT =====
+function enterApp(){
+  const nick = document.getElementById('login-nick').value.trim();
+  if(!nick){document.getElementById('login-nick').focus();return;}
+  S.user = nick;
+  S.apiKey = document.getElementById('login-key').value.trim();
+  document.getElementById('user-pill').textContent = '⚡ '+nick;
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').classList.add('on');
+  if(S.apiKey) document.getElementById('claude-dot').classList.replace('idle','on');
+  loadFromStorage();
+  renderAll();
+  startTicker();
+  setTimeout(()=>showToast('success','⚡ 驾驶舱已激活','AI委员会就绪，今日3只标的待狙击'),800);
+  setTimeout(()=>showToast('warn','⚠ 持仓预警','天合光能健康评分31，建议查看体检报告'),3000);
 }
 
-// ============ 3. 切换页面 ============
-function switchPage(p) {
-  ["strategy","portfolio","news"].forEach(x=>{
-    document.getElementById("page-"+x).style.display = "none";
-  });
-  document.getElementById("page-"+p).style.display = "block";
+function loadFromStorage(){
+  const saved = localStorage.getItem('alphapulse_'+S.user);
+  if(saved){const d=JSON.parse(saved);S.positions=d.positions||DEFAULT_POSITIONS;S.watchlist=d.watchlist||DEFAULT_WATCHLIST;}
+  else{S.positions=[...DEFAULT_POSITIONS];S.watchlist=[...DEFAULT_WATCHLIST];}
 }
 
-// ============ 4. 模拟行情（后面对接真实） ============
-function loadMarket() {
-  fetch("https://api.example.com/market")
-    .then(r=>r.json())
-    .then(d=>{
-      document.getElementById("sz").innerText = d.sz;
-      document.getElementById("sc").innerText = d.sc;
-    })
-    .catch(()=>{
-      document.getElementById("sz").innerText = "3420.50";
-      document.getElementById("sc").innerText = "10900.20";
-    });
+function saveToStorage(){
+  localStorage.setItem('alphapulse_'+S.user, JSON.stringify({positions:S.positions,watchlist:S.watchlist}));
 }
 
-// ============ 5. 加入监控 ============
-function addMonitor() {
-  document.getElementById("modal").style.display = "flex";
-  document.getElementById("m-name").value = "大普微";
-  document.getElementById("m-price").value = "42.80";
-}
-function closeModal() {
-  document.getElementById("modal").style.display = "none";
-}
-async function saveMonitor() {
-  const name = document.getElementById("m-name").value;
-  const price = document.getElementById("m-price").value;
-  await supabase.from("monitors").insert([{user,name,price}]);
-  closeModal();
-  showToast("监控已添加");
+function renderAll(){
+  renderSignals();
+  renderPortfolio();
+  renderWatchlist();
+  renderNews();
+  renderCalendar();
+  renderMonsterList();
+  renderAlerts();
+  setTimeout(()=>{initPieChart();initAlphaChart();},300);
 }
 
-// ============ 6. 加载更多推荐 ============
-function loadMore() {
-  showToast("加载中...");
-  setTimeout(()=>{
-    const html = `
-    <div class="card">
-      <div>华虹半导体 688347</div>
-      <div>买点：58.20 | 止损：54.00 | 止盈：72.00</div>
+// ===== NAVIGATION =====
+function gotoPage(id, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('on'));
+  const p = document.getElementById('page-'+id);
+  if(p) p.classList.add('on');
+  if(el) el.classList.add('on');
+  document.getElementById('main-scroll').scrollTop=0;
+  if(id==='report'){setTimeout(()=>{initAlphaChart();},100);}
+  if(id==='portfolio'){setTimeout(()=>{initPieChart();},100);}
+}
+
+function switchSub(el, id){
+  document.querySelectorAll('.pt').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  document.querySelectorAll('.sub-page').forEach(s=>s.style.display='none');
+  const t = document.getElementById(id);
+  if(t) t.style.display='block';
+}
+
+function switchRp(id, el){
+  document.querySelectorAll('.rp-section').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.rp-tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('rp-'+id).classList.add('on');
+  el.classList.add('on');
+}
+
+// ===== SIGNALS =====
+function renderSignals(){
+  const container = document.getElementById('signal-list');
+  container.innerHTML = '';
+  SIGNALS_DATA.forEach((s,i)=>container.appendChild(buildSignalCard(s,i)));
+}
+
+function buildSignalCard(s, idx){
+  const div = document.createElement('div');
+  div.className = 'signal-card';
+  div.style.border = '1px solid ' + s.borderColor;
+  div.innerHTML = `
+    <div class="sc-top-line" style="background:${s.typeColor}"></div>
+    <div class="sc-type" style="background:${s.typeColor}22;color:${s.typeColor}">${s.type}</div>
+    <div class="sc-name">${s.name} <span style="font-family:var(--mono);font-size:.75rem;color:var(--tx3)">(${s.code})</span> <span style="font-size:.75rem;color:var(--tx3)">· ${s.sector}</span></div>
+    <div class="sc-logic">${s.logic}</div>
+    <div class="price-band">
+      <div class="pb-item"><div class="pb-label">买入点</div><div class="pb-val pbv-buy">¥${s.buy}</div></div>
+      <div class="pb-item"><div class="pb-label">加仓点</div><div class="pb-val pbv-add">¥${s.add}</div></div>
+      <div class="pb-item"><div class="pb-label">铁血止损</div><div class="pb-val pbv-stop">¥${s.stop}</div></div>
+      <div class="pb-item"><div class="pb-label">止盈1</div><div class="pb-val pbv-tp1">¥${s.tp1}</div></div>
+      <div class="pb-item"><div class="pb-label">止盈2</div><div class="pb-val pbv-tp2">¥${s.tp2}</div></div>
     </div>
-    `;
-    document.getElementById("page-strategy").innerHTML += html;
-    showToast("已加载新推荐");
-  }, 800);
+    <div class="ma-row">
+      <span class="ma-chip">MA5 ¥${s.ma5}</span><span class="ma-chip">MA10 ¥${s.ma10}</span>
+      <span class="ma-chip">MA20 ¥${s.ma20}</span><span class="ma-chip">MA60 ¥${s.ma60}</span>
+    </div>
+    <div class="votes-row">${s.votes.map(v=>`<div class="vote-chip"><span class="${v.b?'vc-bull':v.n?'vc-neut':'vc-bear'}">${v.b?'▲':v.n?'—':'▼'}</span>${v.m} ${v.v}</div>`).join('')}</div>
+    <div class="risk-row">盈亏比 <b style="color:var(--g)">${s.ratio}</b> · 建议仓位 <b style="color:var(--am)">${s.pos}</b> · 风险等级 <b>${s.risk}</b></div>
+    <div class="sc-actions">
+      <button class="btn btn-g" onclick="addToWatch('${s.name}','${s.code}','${s.buy}','${s.add}','${s.stop}','${s.tp1}','${s.tp2}','${s.pos}')">+ 加入监控</button>
+      <button class="btn btn-b" onclick="openKline('${s.code}','${s.name}')">查看K线</button>
+      <button class="btn" onclick="openAiDetail('${s.name}','${s.code}')">AI报告</button>
+      <button class="btn" onclick="openAiAnalysis('深度分析${s.name}(${s.code})，从基本面技术面资金面综合判断，给出明确操作建议')">Claude深度分析 ↗</button>
+    </div>`;
+  return div;
 }
 
-// ============ 7. 上传截图（占位，后面对接AI） ============
-function uploadImg() {
-  showToast("AI识别中...");
+function loadMoreSignals(){
+  const btn = document.getElementById('load-more-btn');
+  const txt = document.getElementById('load-more-text');
+  txt.innerHTML = '<span class="loading-spin"></span> AI 正在生成更多推荐...';
   setTimeout(()=>{
-    document.getElementById("holdings").innerHTML = `
-      <div>识别成功：大普微 688585 成本36.20</div>
-    `;
-    showToast("识别完成");
-  }, 1200);
+    const container = document.getElementById('signal-list');
+    MORE_SIGNALS.forEach(s=>container.appendChild(buildSignalCard(s)));
+    txt.textContent = '⬇ 加载更多推荐';
+    showToast('success','⚡ 已追加','新增2只候选标的，请查看');
+  },1800);
 }
 
-// ============ 8. Toast提示 ============
-function showToast(text) {
-  const t = document.getElementById("toast");
-  t.innerText = text;
-  t.style.display = "block";
-  setTimeout(()=>t.style.display = "none", 2500);
+function generateMoreSignals(){
+  showToast('info','🤖 重新生成中','AI委员会正在全市场重新扫描...');
+  setTimeout(()=>{renderSignals();showToast('success','✓ 策略已更新','今日推荐基于最新行情重新研判');},2200);
 }
+
+// ===== PORTFOLIO =====
+function renderPortfolio(){
+  const container = document.getElementById('portfolio-list');
+  container.innerHTML = '<div class="card-h">个股持仓</div>';
+  S.positions.forEach(p=>{
+    const pnl = ((p.current-p.cost)/p.cost*100).toFixed(1);
+    const up = parseFloat(pnl)>=0;
+    const score = up ? (parseFloat(pnl)>10?82:68) : 31;
+    const hc = score>70?'hb-g':score>45?'hb-y':'hb-r';
+    const row = document.createElement('div');
+    row.className = 'pos-row';
+    row.onclick = ()=>openKline(p.code,p.name);
+    row.innerHTML = `
+      <div class="pr-info"><div class="pr-name">${p.name}</div><div class="pr-code">${p.code} · ${p.sector}</div></div>
+      <div class="h-badge ${hc}" style="margin:0 .75rem">${score>=70?'健康 ':score>=45?'观察 ':'预警 '}${score}</div>
+      <div class="pr-pnl"><div class="pr-val ${up?'up':'dn'}">${up?'+':''}${pnl}%</div><div class="pr-cost">成本 ¥${p.cost.toFixed(2)}</div></div>`;
+    container.appendChild(row);
+  });
+}
+
+// ===== WATCHLIST =====
+function renderWatchlist(){
+  const container = document.getElementById('watchlist-container');
+  const alerts = document.getElementById('alert-list');
+  container.innerHTML = '';
+  alerts.innerHTML = '';
+  if(!S.watchlist.length){container.innerHTML='<div class="card" style="text-align:center;color:var(--tx3);padding:2rem">暂无监控，点击策略中的"加入监控"添加</div>';return;}
+  S.watchlist.forEach((w,i)=>{
+    const nearBuy = Math.abs(w.current-w.buy)/w.buy < 0.03;
+    const triggered = w.current <= w.stop;
+    const status = triggered?'wrs-triggered':nearBuy?'wrs-near':'wrs-waiting';
+    const statusTxt = triggered?'⚠ 已触发止损线！':nearBuy?'⚡ 接近买点，准备':('⏳ 等待买点 '+(((w.current-w.buy)/w.buy)*100).toFixed(1)+'%');
+    const row = document.createElement('div');
+    row.className = 'watch-row';
+    row.innerHTML = `
+      <div class="wr-header">
+        <div>
+          <div class="wr-stock">${w.name} <span style="font-family:var(--mono);font-size:10px;color:var(--tx3)">${w.code}</span></div>
+          <div style="font-size:10px;color:var(--tx3);margin-top:1px">${w.note||''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div class="wr-current" style="color:var(--tx)">¥${w.current}</div>
+          <button class="btn btn-r" style="font-size:10px;padding:1px 6px" onclick="removeWatch(${i})">×</button>
+        </div>
+      </div>
+      <div class="wr-levels">
+        <div class="wrl"><div class="wrl-l">买入</div><div style="font-family:var(--mono);font-size:11px;color:var(--g)">¥${w.buy}</div></div>
+        <div class="wrl"><div class="wrl-l">加仓</div><div style="font-family:var(--mono);font-size:11px;color:var(--tl)">¥${w.add}</div></div>
+        <div class="wrl"><div class="wrl-l">止损</div><div style="font-family:var(--mono);font-size:11px;color:var(--r)">¥${w.stop}</div></div>
+        <div class="wrl"><div class="wrl-l">止盈1</div><div style="font-family:var(--mono);font-size:11px;color:var(--am)">¥${w.tp1}</div></div>
+        <div class="wrl"><div class="wrl-l">止盈2</div><div style="font-family:var(--mono);font-size:11px;color:var(--pu)">¥${w.tp2}</div></div>
+      </div>
+      <div class="wr-status ${status}">${statusTxt} · 仓位 ${w.pos}</div>`;
+    container.appendChild(row);
+    const alertRow = document.createElement('div');
+    alertRow.style.cssText = 'background:var(--bg4);border-radius:7px;padding:.6rem .75rem;margin-bottom:.4rem;';
+    alertRow.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;"><span style="font-size:12px;font-weight:500;${triggered?'color:var(--r)':''}">${w.name}</span><span style="font-size:10px;${nearBuy?'color:var(--g)':triggered?'color:var(--r)':'color:var(--am)'}">${triggered?'⚠ 触发':'nearBuy'?'⚡ 接近':'⏳ 等待'}</span></div><div style="font-size:10px;color:var(--tx3)">${triggered?'已触及止损线，建议执行止损':nearBuy?'距买点不足3%，可准备挂单':'买点 ¥'+w.buy+' / 止损 ¥'+w.stop}</div>`;
+    alerts.appendChild(alertRow);
+  });
+}
+
+function addToWatch(name,code,buy,add,stop,tp1,tp2,pos){
+  S.watchlist.push({name,code,current:parseFloat(buy)*1.005,buy:parseFloat(buy),add:parseFloat(add),stop:parseFloat(stop),tp1:parseFloat(tp1),tp2:parseFloat(tp2),pos,note:''});
+  saveToStorage();
+  renderWatchlist();
+  showToast('success','✓ 已加入监控',name+' 买点 ¥'+buy+' 止损 ¥'+stop);
+}
+
+function openAddWatch(){
+  document.getElementById('w-code').value='';document.getElementById('w-name').value='';
+  document.getElementById('w-buy').value='';document.getElementById('w-add').value='';
+  document.getElementById('w-stop').value='';document.getElementById('w-pos').value='5';
+  document.getElementById('w-tp1').value='';document.getElementById('w-tp2').value='';
+  document.getElementById('w-note').value='';
+  document.getElementById('modal-watch').classList.add('on');
+}
+
+function saveWatch(){
+  const w = {
+    code:document.getElementById('w-code').value,name:document.getElementById('w-name').value,
+    current:parseFloat(document.getElementById('w-buy').value)||0,
+    buy:parseFloat(document.getElementById('w-buy').value)||0,
+    add:parseFloat(document.getElementById('w-add').value)||0,
+    stop:parseFloat(document.getElementById('w-stop').value)||0,
+    tp1:parseFloat(document.getElementById('w-tp1').value)||0,
+    tp2:parseFloat(document.getElementById('w-tp2').value)||0,
+    pos:document.getElementById('w-pos').value+'%',note:document.getElementById('w-note').value
+  };
+  if(!w.name){showToast('warn','请填写','股票名称不能为空');return;}
+  S.watchlist.push(w);saveToStorage();renderWatchlist();
+  closeModal('modal-watch');showToast('success','✓ 监控已设置',w.name+' 已加入监控列表');
+}
+
+function removeWatch(i){S.watchlist.splice(i,1);saveToStorage();renderWatchlist();}
+function renderAlerts(){renderWatchlist();}
+
+// ===== NEWS =====
+function renderNews(){
+  const c = document.getElementById('news-list');
+  c.innerHTML = '';
+  NEWS_DATA.forEach(n=>{
+    const div = document.createElement('div');
+    div.className = 'news-item';
+    div.onclick = ()=>openAiAnalysis('分析这条新闻对A股的影响，推荐最受益的3只股票：'+n.title);
+    const heatClass = n.heat==='S'?'ht-s':n.heat==='A'?'ht-a':'ht-b';
+    const segs = Array(10).fill(0).map((_,i)=>`<div class="hs${i<n.segs?' on':''}"></div>`).join('');
+    div.innerHTML = `<span class="heat-tag ${heatClass}">${n.heat}级 · ${n.score}</span><div class="news-title">${n.title}</div><div class="news-meta"><span>${n.time}</span><span>${n.impact}</span></div><div class="heat-segs">${segs}</div>`;
+    c.appendChild(div);
+  });
+}
+
+// ===== CALENDAR =====
+function renderCalendar(){
+  const c = document.getElementById('calendar-list');
+  const ipos = [
+    {d:'26',m:'5月',name:'晶晨半导体',code:'688099',detail:'多媒体芯片 · 发行价42.5元',tag:'持仓相关',tc:'ht-b'},
+    {d:'28',m:'5月',name:'海光信息',code:'688041',detail:'CPU/GPU · 中信证券承销',tag:'重点关注',tc:'ht-s'},
+    {d:'30',m:'5月',name:'某机器人公司',code:'科创板',detail:'人形机器人关节模组',tag:'热点板块',tc:'ht-a'},
+    {d:'3',m:'6月',name:'新能源储能公司',code:'深交所',detail:'储能系统集成商 · 近三年营收复合+85%',tag:'业绩亮眼',tc:'ht-b'},
+  ];
+  c.innerHTML = '';
+  ipos.forEach(ipo=>{
+    const div = document.createElement('div');
+    div.style.cssText='background:var(--bg3);border:1px solid var(--b1);border-radius:10px;padding:.75rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.75rem;cursor:pointer;';
+    div.onclick=()=>openAiAnalysis('分析新股'+ipo.name+'的投资价值，与现有上市同类公司对比，是否值得打新或上市后买入');
+    div.innerHTML = `<div style="background:var(--bg4);border-radius:6px;padding:.4rem .6rem;text-align:center;min-width:44px;"><div style="font-family:var(--mono);font-size:1rem;font-weight:700">${ipo.d}</div><div style="font-size:9px;color:var(--tx3)">${ipo.m}</div></div><div style="flex:1"><div style="font-weight:500;font-size:13px">${ipo.name}</div><div style="font-size:10px;color:var(--tx2);margin-top:1px">${ipo.code} · ${ipo.detail}</div></div><span class="heat-tag ${ipo.tc}" style="font-size:10px">${ipo.tag}</span>`;
+    c.appendChild(div);
+  });
+}
+
+// ===== MONSTER =====
+function renderMonsterList(){
+  const c = document.getElementById('monster-list');
+  c.innerHTML = `<div style="background:var(--bg4);border-radius:8px;padding:.75rem;margin-bottom:.5rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
+      <div><span style="font-weight:500">某次新科技</span> <span style="font-family:var(--mono);font-size:10px;color:var(--tx3)">688XXX</span></div>
+      <span style="font-family:var(--mono);font-size:12px;color:var(--r)">+9.8%</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:.4rem;">
+      <span class="heat-tag ht-b" style="font-size:10px">流通盘8亿</span>
+      <span class="heat-tag ht-a" style="font-size:10px">连续3日放量</span>
+      <span class="heat-tag" style="font-size:10px;background:rgba(157,125,250,0.1);color:var(--pu)">次新股</span>
+    </div>
+    <div style="font-size:10px;color:var(--r)">极高风险 · 建议仓位≤1% · 严格止损-8%</div>
+  </div>`;
+}
+
+// ===== KLINE =====
+function openKline(code, name){
+  S.currentStock = {code, name};
+  document.getElementById('kline-label').textContent = name + ' ' + code + ' · TradingView实时K线';
+  document.getElementById('ai-detail-stock').textContent = name;
+  const market = code.startsWith('6')?'SSE':'SZSE';
+  document.getElementById('tv-frame').src = `https://s.tradingview.com/widgetembed/?frameElementId=tv1&symbol=${market}%3A${code}&interval=D&hidesidetoolbar=1&saveimage=0&toolbarbg=0d1117&theme=dark&style=1&timezone=Asia%2FShanghai&withdateranges=1&locale=zh_CN`;
+  switchRp('kline', document.querySelectorAll('.rp-tab')[0]);
+  showToast('info','📈 K线已切换',name+'('+code+') 实时TradingView图表');
+}
+
+function openAiDetail(name, code){
+  S.currentStock = {code, name};
+  document.getElementById('ai-detail-stock').textContent = name;
+  switchRp('ai-detail', document.querySelectorAll('.rp-tab')[1]);
+}
+
+// ===== UPLOAD =====
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if(f && f.type.startsWith('image/')) processUpload(f);
+}
+function handleFileSelect(e){const f=e.target.files[0];if(f)processUpload(f);}
+function processUpload(file){
+  showToast('info','🔍 AI识别中','正在提取持仓数据，请稍候...');
+  setTimeout(()=>{
+    document.getElementById('upload-result').style.display='block';
+    document.getElementById('parsed-table').innerHTML=`
+      <div style="font-size:11px;color:var(--tx2);margin-bottom:.5rem">已识别 3 只持仓（示例，实际接入API后可真实识别）</div>
+      <div style="background:var(--bg4);border-radius:8px;padding:.75rem;font-size:11px">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:4px;color:var(--tx3);margin-bottom:.4rem;font-size:10px">
+          <span>股票</span><span>成本</span><span>数量</span><span>现价</span><span>浮盈</span>
+        </div>
+        ${DEFAULT_POSITIONS.slice(0,3).map(p=>`<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:4px;padding:3px 0;border-bottom:1px solid var(--b1)">
+          <span>${p.name} ${p.code}</span>
+          <span style="font-family:var(--mono)">¥${p.cost}</span>
+          <span>${p.qty}</span>
+          <span style="font-family:var(--mono)">¥${p.current}</span>
+          <span style="color:${p.current>=p.cost?'var(--g)':'var(--r)'}">${((p.current-p.cost)/p.cost*100).toFixed(1)}%</span>
+        </div>`).join('')}
+      </div>`;
+  },1500);
+}
+function confirmImport(){
+  document.getElementById('upload-result').style.display='none';
+  showToast('success','✓ 持仓已导入','AI健康分析正在后台运行');
+  gotoPage('portfolio', document.querySelectorAll('.nav-item')[1]);
+}
+function manualAddPosition(){
+  const code = document.getElementById('manual-code').value.trim();
+  const name = document.getElementById('manual-name').value.trim();
+  const cost = parseFloat(document.getElementById('manual-cost').value);
+  const qty = parseInt(document.getElementById('manual-qty').value);
+  if(!name||!cost||!qty){showToast('warn','填写完整','请填写所有字段');return;}
+  S.positions.push({code,name,sector:'自定义',cost,qty,current:cost});
+  saveToStorage();renderPortfolio();
+  showToast('success','✓ 持仓已添加',name+' x'+qty+' 成本¥'+cost);
+  document.getElementById('manual-code').value='';document.getElementById('manual-name').value='';
+  document.getElementById('manual-cost').value='';document.getElementById('manual-qty').value='';
+}
+
+// ===== AI CHAT =====
+async function sendAiMessage(){
+  const input = document.getElementById('ai-input');
+  const msg = input.value.trim();
+  if(!msg) return;
+  input.value = '';
+  appendChatMsg('user', 'YOU', msg, 'ai-chat-messages');
+  appendTyping('ai-chat-messages');
+  const reply = await callClaude(msg);
+  removeTyping('ai-chat-messages');
+  appendChatMsg('ai','CLAUDE · alphapulse',reply,'ai-chat-messages');
+}
+
+async function sendModalAi(){
+  const input = document.getElementById('modal-ai-input');
+  const msg = input.value.trim();
+  if(!msg) return;
+  input.value = '';
+  appendChatMsg('user','YOU',msg,'modal-ai-chat');
+  appendTyping('modal-ai-chat');
+  const reply = await callClaude(msg);
+  removeTyping('modal-ai-chat');
+  appendChatMsg('ai','CLAUDE',reply,'modal-ai-chat');
+}
+
+function appendChatMsg(type, model, text, containerId){
+  const c = document.getElementById(containerId);
+  const d = document.createElement('div');
+  d.className = 'ai-msg '+type;
+  d.innerHTML = `<div class="ai-msg-model">${model}</div>${text}`;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+}
+
+function appendTyping(containerId){
+  const c = document.getElementById(containerId);
+  const d = document.createElement('div');
+  d.className = 'ai-msg ai'; d.id = 'typing-'+containerId;
+  d.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+  c.appendChild(d); c.scrollTop = c.scrollHeight;
+}
+
+function removeTyping(containerId){
+  const el = document.getElementById('typing-'+containerId);
+  if(el) el.remove();
+}
+
+async function callClaude(prompt){
+  if(!S.apiKey){
+    return `**未检测到 API Key**\n\n请在登录时填入你的 Claude API Key 以获得真实 AI 分析。\n\n临时演示回答：针对您的问题"${prompt.substring(0,50)}..."，建议关注市场当前热点板块中处于相对低位的标的，结合量能和催化剂共振做决策。`;
+  }
+  document.getElementById('ai-status-pill').textContent = '● AI 分析中...';
+  document.getElementById('ai-status-pill').className = 'status-pill sp-warn';
+  document.getElementById('claude-dot').classList.add('thinking');
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':S.apiKey,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:800,
+        system:`你是 AlphaPulse 的专业A股量化分析师。用户主要关注：次新股、业绩反转股、热点事件驱动、低位标的。
+分析时必须给出：1) 核心逻辑 2) 具体买入价位区间 3) 止损价位 4) 止盈目标1和目标2 5) 风险提示。
+格式简洁，数字具体，不要废话。所有分析仅供参考，不构成投资建议。`,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data = await res.json();
+    document.getElementById('ai-status-pill').textContent = '● AI 委员会就绪';
+    document.getElementById('ai-status-pill').className = 'status-pill sp-ok';
+    document.getElementById('claude-dot').classList.remove('thinking');
+    if(data.content && data.content[0]) return data.content[0].text;
+    return '分析请求失败，请检查 API Key 是否正确。错误：'+(data.error?.message||'未知错误');
+  }catch(err){
+    document.getElementById('ai-status-pill').textContent = '● AI 委员会就绪';
+    document.getElementById('ai-status-pill').className = 'status-pill sp-ok';
+    document.getElementById('claude-dot').classList.remove('thinking');
+    return '网络请求失败。如果你在本地打开此文件，需要部署到服务器才能调用 API（浏览器安全限制）。建议部署到 Vercel 或 Netlify。';
+  }
+}
+
+function openAiAnalysis(prompt){
+  document.getElementById('modal-ai-title').textContent = 'Claude 深度分析';
+  document.getElementById('modal-ai-chat').innerHTML = '';
+  document.getElementById('modal-ai-input').value = '';
+  document.getElementById('modal-ai').classList.add('on');
+  appendChatMsg('user','YOU',prompt,'modal-ai-chat');
+  appendTyping('modal-ai-chat');
+  callClaude(prompt).then(reply=>{
+    removeTyping('modal-ai-chat');
+    appendChatMsg('ai','CLAUDE · alphapulse',reply,'modal-ai-chat');
+  });
+}
+
+function quickAsk(prompt){
+  const input = document.getElementById('ai-input');
+  input.value = prompt;
+  sendAiMessage();
+}
+
+// ===== MODAL =====
+function closeModal(id){document.getElementById(id).classList.remove('on');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.modal-wrap.on').forEach(m=>m.classList.remove('on'));}});
+document.querySelectorAll('.modal-wrap').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
+
+// ===== TOAST =====
+function showToast(type, t1, t2){
+  const stack = document.getElementById('toast-stack');
+  const toast = document.createElement('div');
+  toast.className = 'toast '+type;
+  const icons = {info:'ℹ️',success:'✅',warn:'⚠️',danger:'🚨'};
+  toast.innerHTML = `<div class="toast-icon">${icons[type]||'ℹ️'}</div><div class="toast-body"><div class="t1">${t1}</div><div class="t2">${t2}</div></div>`;
+  stack.appendChild(toast);
+  setTimeout(()=>{toast.style.opacity='0';toast.style.transform='translateX(30px)';toast.style.transition='all .3s';setTimeout(()=>toast.remove(),300);},5000);
+}
+
+// ===== CHARTS =====
+function initPieChart(){
+  const canvas = document.getElementById('portfolio-pie');
+  if(!canvas||!window.Chart) return;
+  if(S.charts.pie) S.charts.pie.destroy();
+  S.charts.pie = new Chart(canvas,{
+    type:'doughnut',
+    data:{labels:['半导体','新能源','光伏','现金'],datasets:[{data:[45,30,15,10],backgroundColor:['#3d8bff','#00e5a0','#ffaa00','#9d7dfa'],borderWidth:0,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'68%'}
+  });
+}
+
+function initAlphaChart(){
+  const canvas = document.getElementById('alpha-chart');
+  if(!canvas||!window.Chart) return;
+  if(S.charts.alpha) S.charts.alpha.destroy();
+  S.charts.alpha = new Chart(canvas,{
+    type:'line',
+    data:{
+      labels:['1月','2月','3月','4月','5月'],
+      datasets:[
+        {label:'AI策略',data:[0,8.2,19.4,31.0,41.2],borderColor:'#00e5a0',tension:.4,borderWidth:2,pointRadius:3,fill:false},
+        {label:'我的持仓',data:[0,3.8,10.5,17.2,23.4],borderColor:'#3d8bff',tension:.4,borderWidth:2,pointRadius:3,fill:false,borderDash:[5,4]},
+        {label:'沪深300',data:[0,1.8,4.5,7.3,11.1],borderColor:'#404a5c',tension:.4,borderWidth:1.5,pointRadius:2,fill:false,borderDash:[2,3]}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#404a5c',font:{size:10}}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#404a5c',font:{size:10},callback:v=>v+'%'}}
+      }
+    }
+  });
+}
+
+// ===== MARKET TICKER =====
+function startTicker(){
+  const bases = {'m-sh':3412.56,'m-sz':10892.34,'m-cy':2156.78,'m-bz':1023.45};
+  setInterval(()=>{
+    Object.entries(bases).forEach(([id,base])=>{
+      const el = document.getElementById(id);
+      if(el) el.textContent = (base+(Math.random()-.5)*3).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+    });
+  },3500);
+}
+
+// Enter key for login
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('login-key')&&document.getElementById('login-key').addEventListener('keydown',e=>{if(e.key==='Enter')enterApp();});
+});
 </script>
-
 </body>
 </html>
